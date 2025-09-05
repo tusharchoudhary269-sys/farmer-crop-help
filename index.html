@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>🌾 Farmer Crop Helper — Complete</title>
+
+<!-- QR library -->
+<script src="https://unpkg.com/jsqr@1.4.0/dist/jsQR.js"></script>
+
+<style>
+  :root{
+    --green:#2e8b57; --accent:#f6b042; --bg-dark:#061617;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    background:linear-gradient(180deg,#041012 0%, #072026 60%);
+    color:#e9ffe9;
+  }
+
+  /* header */
+  header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:12px 18px; background:linear-gradient(90deg,var(--green),#2aa66a);
+    position:sticky; top:0; z-index:1400; box-shadow:0 6px 22px rgba(0,0,0,.45);
+  }
+  header img{ width:44px; height:44px; border-radius:10px; background:#fff; padding:6px }
+  .clock{ font-weight:700; }
+
+  /* slogan center with curvy underline */
+  .slogan-wrap{ display:flex; justify-content:center; margin:18px 0 6px; }
+  .slogan{
+    font-size:1.6rem; font-weight:800; color:#ffeb3b; position:relative; padding-bottom:12px;
+  }
+  .slogan::after{
+    content:"";
+    position:absolute; left:50%; transform:translateX(-50%);
+    bottom:0; width:70%; height:12px; border-radius:999px;
+    background: radial-gradient(circle at 30% 50%, rgba(255,235,59,0.95) 0 18%, transparent 40%), linear-gradient(90deg,#ffeb3b,#ff9800);
+    filter:blur(4px); opacity:0.85;
+  }
+
+  /* hero */
+  .hero{ max-width:1200px; margin:12px auto; border-radius:12px; overflow:hidden; min-height:160px; position:relative; background:linear-gradient(180deg,#9fe6ff 0,#c8f1e8 60%); box-shadow:0 18px 48px rgba(0,0,0,.6) }
+  .sun{ position:absolute; left:36px; top:24px; width:84px; height:84px; border-radius:50%; background:#ffd54f; box-shadow:0 0 60px rgba(255,213,79,.6) }
+  .cloud{ position:absolute; top:38px; width:150px; height:62px; background:#fff; border-radius:50px; animation:cloud 50s linear infinite }
+  .cloud.small{ width:110px; height:46px; top:84px; transform:scale(.9) }
+  @keyframes cloud{ from{left:-280px} to{left:110%} }
+  .tractor{ position:absolute; bottom:20px; left:-200px; font-size:48px; animation:drive 20s linear infinite }
+  @keyframes drive{ from{left:-220px} to{left:110%} }
+
+  main{ max-width:1200px; margin:18px auto 120px; padding:0 18px; position:relative; }
+  .controls{ display:flex; gap:12px; flex-wrap:wrap; justify-content:center; align-items:center; margin-bottom:12px }
+  select, button{ padding:10px 14px; border-radius:10px; font-size:15px; border:none; cursor:pointer }
+  select{ background:rgba(255,255,255,0.06); color:#e9ffe9; min-width:160px; border:1px solid rgba(255,255,255,0.04) }
+  .btn{ background:var(--green); color:#fff }
+  .btn.alt{ background:#2d3940 }
+
+  #result{ display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; margin-top:12px }
+
+  .card{ background:linear-gradient(180deg,#0f2220,#07171a); border-radius:12px; padding:12px; box-shadow:0 10px 30px rgba(0,0,0,.6); cursor:pointer; transition:transform .25s, box-shadow .25s; border:1px solid rgba(255,255,255,0.04) }
+  .card:hover{ transform:translateY(-6px); box-shadow:0 18px 48px rgba(0,0,0,.7) }
+  .card img{ width:100%; height:140px; object-fit:cover; border-radius:8px; border:1px solid rgba(255,255,255,0.03) }
+  .card .name{ color:#c9ffd1; font-weight:800; margin-top:8px }
+  .card .desc{ color:#dfffd9; margin-top:6px; font-size:0.95rem }
+
+  /* Modal for crop details */
+  .modal-backdrop{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.65); z-index:1600 }
+  .modal{ width:94%; max-width:700px; background:linear-gradient(180deg,#052a27,#083936); border-radius:12px; padding:18px; color:#e9ffe9; box-shadow:0 24px 80px rgba(0,0,0,.7) }
+  .modal .top{ display:flex; gap:14px; align-items:flex-start }
+  .modal img{ width:210px; height:150px; object-fit:cover; border-radius:8px; border:1px solid rgba(255,255,255,0.04) }
+  .modal h2{ margin:0; color:#ddffd8 }
+  .badges{ margin-top:8px; display:flex; gap:8px; flex-wrap:wrap }
+  .badge{ background:rgba(255,255,255,0.05); padding:6px 8px; border-radius:8px; font-weight:700 }
+  .modal .detail{ margin-top:12px; color:#dfffe1; line-height:1.5 }
+  .modal .actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:14px }
+
+  /* Chat overlay */
+  .chat{ position:fixed; bottom:18px; right:18px; width:360px; max-height:70vh; background:linear-gradient(180deg,#071219,#0f2223); border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,.6); overflow:hidden; z-index:1500; display:flex; flex-direction:column }
+  .chat .head{ background:linear-gradient(90deg,var(--green),#2aa66a); padding:10px 12px; color:#fff; display:flex; justify-content:space-between; align-items:center; font-weight:800 }
+  .chat .messages{ padding:12px; overflow:auto; flex:1; font-size:0.95rem }
+  .bubble{ padding:8px 10px; border-radius:10px; margin:8px 0; max-width:90%; word-wrap:break-word }
+  .bubble.user{ background:#133a21; color:#dfffd9; margin-left:auto; text-align:right }
+  .bubble.ai{ background:#0f1720; border:1px solid rgba(255,255,255,0.03); color:#e6fff0 }
+  .chat .input{ display:flex; gap:8px; padding:10px; border-top:1px solid rgba(255,255,255,0.03); background:#061213 }
+  .chat input[type="text"]{ flex:1; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,0.04); background:#081516; color:#fff }
+
+  .icon-btn{ background:transparent; border:none; color:#fff; font-size:18px; cursor:pointer; padding:6px 10px; border-radius:8px }
+  .icon-btn.voice.active{ background:#b22222 }
+
+  /* Floating toggle */
+  #chat-toggle{ position:fixed; bottom:20px; right:20px; background:var(--green); color:#fff; width:56px; height:56px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:24px; box-shadow:0 12px 30px rgba(0,0,0,.5); cursor:pointer; z-index:1499; animation:pop 1.8s infinite }
+  @keyframes pop{ 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(-8px) } }
+
+  /* QR Modal */
+  #qrModal{ display:none; position:fixed; inset:0; z-index:1700; background:rgba(0,0,0,0.8); align-items:center; justify-content:center }
+  #qrModal .frame{ background:#012a26; padding:12px; border-radius:10px; display:flex; flex-direction:column; gap:10px; align-items:center }
+  #qrVideo{ width:320px; height:240px; border-radius:8px; border:4px solid rgba(255,255,255,0.06); background:#000 }
+
+  @media (max-width:760px){
+    .chat{ width:92vw; right:4vw; bottom:12px }
+    #qrVideo{ width:280px; height:210px }
+  }
+</style>
+</head>
+<body>
+
+<!-- header: only logo + clock -->
+<header>
+  <img src="https://cdn-icons-png.flaticon.com/512/135/135620.png" alt="logo">
+  <div class="clock" id="clock">--:--:--</div>
+</header>
+
+<!-- slogan centered -->
+<div class="slogan-wrap"><div class="slogan">✊ जय किसान जय जवान ✊</div></div>
+
+<!-- hero decorative -->
+<section class="hero" id="hero">
+  <div class="sun"></div>
+  <div class="cloud" style="left:-260px"></div>
+  <div class="cloud small" style="left:-460px"></div>
+  <div class="tractor">🚜</div>
+  <div style="position:absolute; bottom:0; left:0; right:0; height:110px; background:linear-gradient(180deg,#6bbf59,#3e8e41)"></div>
+</section>
+
+<main>
+  <div class="controls">
+    <select id="soil" aria-label="soil">
+      <option value="">-- Select Soil --</option>
+      <option value="Loamy">Loamy</option>
+      <option value="Sandy">Sandy</option>
+      <option value="Clay">Clay</option>
+      <option value="Alluvial">Alluvial</option>
+    </select>
+
+    <select id="season" aria-label="season">
+      <option value="">-- Select Season --</option>
+      <option value="Kharif">Kharif</option>
+      <option value="Rabi">Rabi</option>
+      <option value="Summer">Summer</option>
+    </select>
+
+    <select id="water" aria-label="water">
+      <option value="">-- Select Water --</option>
+      <option value="Low">Low</option>
+      <option value="Medium">Medium</option>
+      <option value="High">High</option>
+    </select>
+
+    <button class="btn" id="recBtn">Get Recommendations</button>
+    <button class="btn alt" id="scanQRBtn">📷 Scan QR</button>
+  </div>
+
+  <div id="result" aria-live="polite"></div>
+</main>
+
+<!-- crop detail modal -->
+<div class="modal-backdrop" id="detailModal">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="top">
+      <img id="modalImg" src="" alt="crop image">
+      <div class="info">
+        <h2 id="modalTitle">Crop</h2>
+        <div class="badges">
+          <span class="badge" id="modalSow">Sow</span>
+          <span class="badge" id="modalWater">Water</span>
+          <span class="badge" id="modalHarvest">Harvest</span>
+        </div>
+        <div class="detail" id="modalTip"></div>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn alt" id="closeModalBtn">Close</button>
+      <button class="btn" id="sendToChatBtn">Send to Chat</button>
+    </div>
+  </div>
+</div>
+
+<!-- QR Modal -->
+<div id="qrModal">
+  <div class="frame">
+    <video id="qrVideo" autoplay playsinline></video>
+    <div style="display:flex; gap:8px;">
+      <button class="btn" id="stopQRBtn">Stop</button>
+      <button class="btn alt" id="closeQRBtn">Close</button>
+    </div>
+    <div style="color:#fff; font-size:0.95rem;">Point camera at QR code</div>
+  </div>
+</div>
+
+<!-- Chat overlay (hidden initially) -->
+<div class="chat" id="chat" style="display:none">
+  <div class="head">
+    <div>👩‍🌾 AI Farming Helper</div>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <select id="langSelect" style="background:transparent; color:#fff; border:none; font-weight:700">
+        <option value="en">EN</option>
+        <option value="hi">हिन्दी</option>
+      </select>
+      <button class="icon-btn" id="closeChatBtn" title="Close chat">✖</button>
+    </div>
+  </div>
+  <div class="messages" id="messages" role="log" aria-live="polite"></div>
+  <div class="input">
+    <input id="chatInput" type="text" placeholder="Ask about crop, soil, seeds..." />
+    <button class="icon-btn" id="micBtn" title="Voice">🎤</button>
+    <button class="icon-btn" id="sendBtn" title="Send">➤</button>
+  </div>
+</div>
+
+<!-- Floating chat toggle -->
+<div id="chat-toggle" title="Open Chat">💬</div>
+
+<script>
+/* ---------------- CLOCK ---------------- */
+function updateClock(){
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toLocaleTimeString();
+}
+setInterval(updateClock,1000);
+updateClock();
+
+/* ---------------- DATASETS ---------------- */
+const rules = {
+  "Loamy_Kharif_High":["Rice","Maize","Sugarcane"], "Loamy_Kharif_Medium":["Maize","Pulses"], "Loamy_Kharif_Low":["Bajra","Millets"],
+  "Loamy_Rabi_High":["Wheat","Barley","Mustard"], "Loamy_Rabi_Medium":["Wheat","Mustard"], "Loamy_Rabi_Low":["Millets","Gram"],
+  "Loamy_Summer_High":["Maize","Watermelon","Groundnut"], "Loamy_Summer_Medium":["Maize","Pulses"], "Loamy_Summer_Low":["Bajra","Millets"],
+  "Sandy_Kharif_High":["Rice","Maize","Cotton"], "Sandy_Kharif_Medium":["Maize","Pulses","Cotton"], "Sandy_Kharif_Low":["Millets","Pulses"],
+  "Sandy_Rabi_High":["Wheat","Barley","Mustard"], "Sandy_Rabi_Medium":["Wheat","Gram"], "Sandy_Rabi_Low":["Millets","Gram"],
+  "Sandy_Summer_High":["Maize","Groundnut","Watermelon"], "Sandy_Summer_Medium":["Maize","Pulses"], "Sandy_Summer_Low":["Bajra","Millets"],
+  "Clay_Kharif_High":["Rice","Jute","Sugarcane"], "Clay_Kharif_Medium":["Rice","Maize"], "Clay_Kharif_Low":["Millets"],
+  "Clay_Rabi_High":["Wheat","Gram"], "Clay_Rabi_Medium":["Wheat","Barley","Gram"], "Clay_Rabi_Low":["Millets"],
+  "Clay_Summer_High":["Maize","Groundnut"], "Clay_Summer_Medium":["Maize","Pulses"], "Clay_Summer_Low":["Bajra","Millets"],
+  "Alluvial_Kharif_High":["Rice","Jute","Sugarcane"], "Alluvial_Kharif_Medium":["Maize","Pulses"], "Alluvial_Kharif_Low":["Millets"],
+  "Alluvial_Rabi_High":["Wheat","Barley","Mustard"], "Alluvial_Rabi_Medium":["Wheat","Mustard","Potato"], "Alluvial_Rabi_Low":["Millets","Gram"],
+  "Alluvial_Summer_High":["Maize","Watermelon"], "Alluvial_Summer_Medium":["Maize","Pulses"], "Alluvial_Summer_Low":["Bajra","Millets"]
+};
+
+const cropDetails = {
+  "Rice": { sow: "June–July (Kharif)", water: "High (standing water)", harvest: "120–150 days", tip: "Puddled fields and nitrogen top dressing improve yield.", img: "https://cdn.pixabay.com/photo/2017/06/20/17/47/rice-2427427_1280.jpg" },
+  "Wheat": { sow: "Nov–Dec (Rabi)", water: "Medium", harvest: "110–130 days", tip: "Use timely irrigation and recommended seed rates.", img: "https://cdn.pixabay.com/photo/2018/07/09/07/29/wheat-3525951_1280.jpg" },
+  "Maize": { sow: "June–July (Kharif) or Feb (Summer)", water: "Medium", harvest: "90–120 days", tip: "Good earthing up and balanced N improve yield.", img: "https://cdn.pixabay.com/photo/2016/11/19/15/28/corn-1837170_1280.jpg" },
+  "Sugarcane": { sow: "Feb–March", water: "High", harvest: "10–18 months", tip: "Needs fertile soil and regular gap filling.", img: "https://cdn.pixabay.com/photo/2016/11/18/17/09/sugarcane-1834957_1280.jpg" },
+  "Cotton": { sow: "June–July (Kharif)", water: "Medium", harvest: "5–6 months", tip: "Manage pests and use proper spacing.", img: "https://cdn.pixabay.com/photo/2016/03/27/21/10/cotton-1284544_1280.jpg" },
+  "Potato": { sow: "Oct–Nov (Rabi)", water: "Medium", harvest: "90–120 days", tip: "Use certified seed tubers for better yield.", img: "https://cdn.pixabay.com/photo/2018/06/11/09/42/potatoes-3475012_1280.jpg" },
+  "Mustard": { sow: "Oct–Nov (Rabi)", water: "Medium", harvest: "90–120 days", tip: "Phosphorous improves early vigor.", img: "https://cdn.pixabay.com/photo/2016/04/17/07/29/mustard-1339310_1280.jpg" },
+  "Pulses": { sow: "Rabi/Kharif depending on type", water: "Low–Medium", harvest: "75–110 days", tip: "Nitrogen-fixing — good rotation crop.", img: "https://cdn.pixabay.com/photo/2018/03/11/15/30/lentils-3211925_1280.jpg" },
+  "Groundnut": { sow: "June–July (Kharif)", water: "Medium", harvest: "110–140 days", tip: "Calcium-rich soils help pod formation.", img: "https://cdn.pixabay.com/photo/2016/03/27/19/25/peanut-1283264_1280.jpg" },
+  "Watermelon": { sow: "Feb–March or Kharif", water: "High", harvest: "80–90 days", tip: "Raised beds improve drainage.", img: "https://cdn.pixabay.com/photo/2017/06/09/06/50/watermelon-2383816_1280.jpg" },
+  "Jute": { sow: "Kharif (June–July)", water: "High (humid)", harvest: "3–4 months", tip: "Warm, humid climate required.", img: "https://cdn.pixabay.com/photo/2017/05/28/00/53/jute-2353423_1280.jpg" },
+  "Barley": { sow: "Rabi (Nov–Dec)", water: "Medium", harvest: "90–100 days", tip: "Tolerates cold, good rotation crop.", img: "https://cdn.pixabay.com/photo/2016/04/06/11/11/barley-1317324_1280.jpg" },
+  "Bajra": { sow: "Kharif (June–July)", water: "Low (drought-resistant)", harvest: "60–90 days", tip: "Good for arid regions.", img: "https://cdn.pixabay.com/photo/2017/10/25/12/55/finger-millet-2880481_1280.jpg" },
+  "Millets": { sow: "Kharif/Rabi depending on variety", water: "Low", harvest: "60–90 days", tip: "Low input, reliable crop.", img: "https://cdn.pixabay.com/photo/2017/02/10/20/43/millet-2052804_1280.jpg" },
+  "Gram": { sow: "Oct–Dec (Rabi)", water: "Low–Medium", harvest: "90–120 days", tip: "Good for protein and soil health.", img: "https://cdn.pixabay.com/photo/2017/07/03/21/48/chickpeas-2471253_1280.jpg" }
+};
+
+const seasonBg = {
+  "Kharif":"https://cdn.pixabay.com/photo/2017/04/15/12/06/field-2227686_1280.jpg",
+  "Rabi":"https://cdn.pixabay.com/photo/2016/11/19/17/00/wheat-1838358_1280.jpg",
+  "Summer":"https://cdn.pixabay.com/photo/2016/03/27/22/03/field-1284842_1280.jpg"
+};
+
+/* ----------------- Recommendation logic (always works) ----------------- */
+const soilEl = document.getElementById('soil');
+const seasonEl = document.getElementById('season');
+const waterEl = document.getElementById('water');
+const resultEl = document.getElementById('result');
+const recBtn = document.getElementById('recBtn');
+
+function recommendCrops(){
+  const soil = soilEl.value || '';
+  const season = seasonEl.value || '';
+  const water = waterEl.value || '';
+  // friendly message when not selected
+  if(!soil || !season || !water){
+    resultEl.innerHTML = `<div style="grid-column:1/-1; padding:16px; background:linear-gradient(180deg,#071219,#0c2a21); border-radius:10px; color:#cfe9d0">
+      कृपया मिट्टी, मौसम और पानी चुनें / Please select Soil, Season & Water to see suggestions.
+    </div>`;
+    return;
+  }
+
+  // hero background hint
+  const hero = document.getElementById('hero');
+  if(seasonBg[season]) { hero.style.backgroundImage = `url('${seasonBg[season]}')`; hero.style.backgroundSize = 'cover'; hero.style.backgroundBlendMode = 'soft-light'; }
+
+  const key = `${soil}_${season}_${water}`;
+  const crops = rules[key] || [];
+  resultEl.innerHTML = '';
+  if(!crops.length){
+    resultEl.innerHTML = `<div style="grid-column:1/-1; padding:16px; background:linear-gradient(180deg,#071219,#0c2a21); border-radius:10px; color:#ffd6d6">No recommendations for this combination.</div>`;
+    return;
+  }
+
+  crops.forEach((crop,i)=>{
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.dataset.crop = crop;
+    card.style.animationDelay = `${i*0.06}s`;
+    const img = cropDetails[crop] ? cropDetails[crop].img : 'https://cdn.pixabay.com/photo/2015/05/07/11/02/seeds-756362_1280.jpg';
+    card.innerHTML = `<img src="${img}" alt="${crop}"><div class="name">${crop}</div><div class="desc">${cropDetails[crop] ? cropDetails[crop].tip : ''}</div>`;
+    card.addEventListener('click', ()=> onCropClick(crop));
+    resultEl.appendChild(card);
+  });
+
+  // speak summary
+  const summary = `Recommendation: ${crops.join(', ')} for ${soil}, ${season} with ${water} water.`;
+  speak(summary);
+}
+
+recBtn.addEventListener('click', recommendCrops);
+[soilEl, seasonEl, waterEl].forEach(el => el.addEventListener('change', recommendCrops));
+
+/* ---------------- Crop click => modal + chat ---------------- */
+const detailModal = document.getElementById('detailModal');
+const modalImg = document.getElementById('modalImg');
+const modalTitle = document.getElementById('modalTitle');
+const modalSow = document.getElementById('modalSow');
+const modalWater = document.getElementById('modalWater');
+const modalHarvest = document.getElementById('modalHarvest');
+const modalTip = document.getElementById('modalTip');
+const closeModalBtn = document.getElementById('closeModalBtn');
+const sendToChatBtnEl = document.getElementById('sendToChatBtn');
+
+let currentCrop = null;
+
+function onCropClick(crop){
+  currentCrop = crop;
+  const d = cropDetails[crop] || {};
+  modalImg.src = d.img || 'https://cdn.pixabay.com/photo/2015/05/07/11/02/seeds-756362_1280.jpg';
+  modalTitle.textContent = crop;
+  modalSow.textContent = `Sow: ${d.sow || '—'}`;
+  modalWater.textContent = `Water: ${d.water || '—'}`;
+  modalHarvest.textContent = `Harvest: ${d.harvest || '—'}`;
+  modalTip.textContent = d.tip || '';
+  detailModal.style.display = 'flex';
+}
+
+closeModalBtn.addEventListener('click', ()=> detailModal.style.display = 'none');
+
+sendToChatBtnEl.addEventListener('click', ()=>{
+  if(!currentCrop) return;
+  const d = cropDetails[currentCrop];
+  const msg = `${currentCrop} — Best time: ${d.sow}. Water: ${d.water}. Harvest: ${d.harvest}. Tip: ${d.tip}`;
+  pushChat('user', `I selected ${currentCrop}`);
+  pushChat('ai', msg);
+  speak((lang === 'hi' ? translateToHindiSpeech(currentCrop, d) : msg));
+  detailModal.style.display = 'none';
+});
+
+/* ---------------- Chat + Voice (TTS & STT) ---------------- */
+const chatEl = document.getElementById('chat');
+const chatToggle = document.getElementById('chat-toggle');
+const closeChatBtn = document.getElementById('closeChatBtn');
+const messagesEl = document.getElementById('messages');
+const chatInput = document.getElementById('chatInput');
+const sendBtn = document.getElementById('sendBtn');
+const micBtn = document.getElementById('micBtn');
+const langSelect = document.getElementById('langSelect');
+
+let lang = localStorage.getItem('kissan_lang') || 'en';
+langSelect.value = lang;
+
+// show/hide chat
+chatToggle.addEventListener('click', ()=>{ chatEl.style.display = 'flex'; chatToggle.style.display = 'none'; initialGreeting(); });
+closeChatBtn.addEventListener('click', ()=>{ chatEl.style.display = 'none'; chatToggle.style.display = 'flex'; });
+
+// push chat bubble
+function pushChat(who, text){
+  const b = document.createElement('div');
+  b.className = 'bubble ' + (who === 'user' ? 'user' : 'ai');
+  if(who === 'user'){
+    b.innerHTML = `<div style="font-weight:700">You</div><div>${escapeHtml(text)}</div>`;
+  } else {
+    b.innerHTML = `<div style="font-weight:700">AI</div><div>${text}</div>`;
+  }
+  messagesEl.appendChild(b);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+// simple processing for chat queries
+function processChatQuery(text){
+  const lower = text.toLowerCase();
+  // crop matching
+  for(const crop in cropDetails){
+    if(lower.includes(crop.toLowerCase()) || lower.includes(transliterateToHindi(crop).toLowerCase())){
+      const d = cropDetails[crop];
+      const reply = `${crop}: Best time — ${d.sow}. Water — ${d.water}. Harvest — ${d.harvest}. Tip: ${d.tip}`;
+      pushChat('ai', reply);
+      speak((lang === 'hi') ? translateToHindiSpeech(crop, d) : reply);
+      return;
+    }
+  }
+  if(/soil|मिट्टी/.test(lower)){
+    const reply = `Soil tips: Loamy is balanced; Sandy drains fast; Clay holds water. Choose accordingly.`;
+    pushChat('ai', reply); speak(reply); return;
+  }
+  if(/seed|बीज/.test(lower)){
+    const reply = `Seed tips: use certified seeds with high germination, treat seeds before sowing.`;
+    pushChat('ai', reply); speak(reply); return;
+  }
+  if(/water|पानी/.test(lower)){
+    const reply = `Water guide: Rice & sugarcane need high water; millets need low water. Mulch to save moisture.`;
+    pushChat('ai', reply); speak(reply); return;
+  }
+  if(/recommend|suggest|अनुशंसा/.test(lower)){
+    recommendCrops(); pushChat('ai','Shown recommendations above.'); speak('Recommendations shown'); return;
+  }
+  const fallback = (lang === 'hi') ? 'मुझे समझ नहीं आया — फसल, मिट्टी या पानी के बारे में पूछिए।' : 'I did not understand — please ask about crop, soil, or water.';
+  pushChat('ai', fallback); speak(fallback);
+}
+
+// send chat via button or Enter
+sendBtn.addEventListener('click', ()=>{
+  const t = chatInput.value.trim(); if(!t) return;
+  pushChat('user', t); chatInput.value=''; processChatQuery(t);
+});
+chatInput.addEventListener('keydown', e => { if(e.key === 'Enter') sendBtn.click(); });
+
+// language change
+langSelect.addEventListener('change', ()=>{ lang = langSelect.value; localStorage.setItem('kissan_lang', lang); });
+
+// TTS - choose female voice if possible
+function getPreferredVoice(utterLang){
+  const voices = speechSynthesis.getVoices();
+  const langPrefix = utterLang.split('-')[0];
+  const preferredNames = ['female','zira','samantha','amy','nina','kanya','arya','sindhu','kate','alloy','google','alva'];
+  let v = voices.find(vo => vo.lang && vo.lang.toLowerCase().startsWith(langPrefix) && preferredNames.some(n => vo.name.toLowerCase().includes(n)));
+  if(!v) v = voices.find(vo => vo.lang && vo.lang.toLowerCase().startsWith(langPrefix));
+  if(!v) v = voices[0];
+  return v;
+}
+
+function speak(text){
+  if(!('speechSynthesis' in window)) return;
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = (lang === 'hi') ? 'hi-IN' : 'en-IN';
+  utter.rate = 1; utter.pitch = 1.05;
+  const trySet = () => { const v = getPreferredVoice(utter.lang); if(v) utter.voice = v; window.speechSynthesis.cancel(); window.speechSynthesis.speak(utter); };
+  if(speechSynthesis.getVoices().length === 0){
+    speechSynthesis.addEventListener('voiceschanged', trySet);
+    trySet();
+  } else trySet();
+}
+
+// STT (SpeechRecognition)
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+let recognition = null;
+let listening = false;
+
+function toggleMic(){
+  if(!SpeechRecognition){ alert('Speech recognition not supported in your browser. Try Chrome.'); return; }
+  if(listening && recognition){ recognition.stop(); return; }
+  recognition = new SpeechRecognition();
+  recognition.lang = (lang === 'hi') ? 'hi-IN' : 'en-IN';
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+  recognition.onstart = ()=>{ listening = true; micBtn.classList.add('active'); micBtn.textContent='■'; };
+  recognition.onend = ()=>{ listening = false; micBtn.classList.remove('active'); micBtn.textContent='🎤'; };
+  recognition.onerror = ()=>{ listening=false; micBtn.classList.remove('active'); micBtn.textContent='🎤'; };
+  recognition.onresult = (ev)=>{ const txt = ev.results[0][0].transcript; pushChat('user', txt); processChatQuery(txt); };
+  recognition.start();
+}
+document.getElementById('micBtn').addEventListener('click', toggleMic);
+
+/* ---------------- helpers ---------------- */
+function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+function transliterateToHindi(eng){
+  const map = {'Wheat':'गेहूँ','Rice':'धान','Maize':'मक्का','Sugarcane':'गन्ना','Mustard':'सरसों','Potato':'आलू','Millets':'बाजरा','Groundnut':'मूँगफली','Watermelon':'तरबूज','Gram':'चना','Cotton':'कपास','Jute':'जूट','Barley':'जौ'};
+  return map[eng] || eng;
+}
+function translateToHindiSpeech(crop, d){
+  return `${crop} — उत्तम बुवाई: ${d.sow}. पानी की मांग: ${d.water}. कटाई: ${d.harvest}. सुझाव: ${d.tip}`;
+}
+
+/* initial greeting when chat opens */
+function initialGreeting(){
+  const g = (lang === 'hi') ? 'नमस्ते किसान जी! मैं आपकी खेती सहायक हूँ — फसल पर जानकारी के लिए पूछिए।' : 'Hello Farmer! I am your farming assistant — ask me about crops, soil, or seeds.';
+  pushChat('ai', g); speak(g);
+}
+
+/* ---------------- QR scanning (Scan QR button) ---------------- */
+const scanQRBtn = document.getElementById('scanQRBtn');
+const qrModal = document.getElementById('qrModal');
+const qrVideo = document.getElementById('qrVideo');
+const stopQRBtn = document.getElementById('stopQRBtn');
+const closeQRBtn = document.getElementById('closeQRBtn');
+
+let qrStream = null;
+let scanning = false;
+let rafId = null;
+
+scanQRBtn.addEventListener('click', openQR);
+stopQRBtn.addEventListener('click', stopQR);
+closeQRBtn.addEventListener('click', closeQR);
+
+function openQR(){
+  qrModal.style.display = 'flex';
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+    .then(stream => {
+      qrStream = stream;
+      qrVideo.srcObject = stream;
+      qrVideo.play();
+      scanning = true;
+      tickQR();
+    })
+    .catch(err => {
+      alert('Camera access denied or not available.');
+      closeQR();
+    });
+}
+function tickQR(){
+  if(!scanning) return;
+  try {
+    const w = qrVideo.videoWidth, h = qrVideo.videoHeight;
+    if(w && h){
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(qrVideo,0,0,w,h);
+      const img = ctx.getImageData(0,0,w,h);
+      const code = jsQR(img.data, w, h, { inversionAttempts: "attemptBoth" });
+      if(code && code.data){
+        // handle scanned data
+        pushChat('user', `Scanned QR: ${code.data}`);
+        processChatQuery(code.data.toString());
+        closeQR();
+        return;
+      }
+    }
+  } catch(e){
+    // ignore while video is initializing
+  }
+  rafId = requestAnimationFrame(tickQR);
+}
+function stopQR(){
+  scanning = false;
+  if(qrStream){ qrStream.getTracks().forEach(t=>t.stop()); qrStream = null; }
+  if(rafId) cancelAnimationFrame(rafId);
+  try{ qrVideo.pause(); qrVideo.srcObject = null; }catch(e){}
+}
+function closeQR(){ stopQR(); qrModal.style.display = 'none'; }
+
+/* ---------------- initial load greeting (small) ---------------- */
+document.addEventListener('DOMContentLoaded', ()=> {
+  // initial recommend friendly message
+  recommendCrops();
+});
+
+/* ensure voices loaded for some browsers */
+speechSynthesis.getVoices();
+
+/* end of script */
+</script>
+</body>
+</html>
